@@ -1,0 +1,55 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "dev",
+            "displayName": "Developer build (no LLVM)",
+            "binaryDir": "${sourceDir}/build/dev",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "MLANG_ENABLE_LLVM": "OFF",
+                "MLANG_BUILD_TESTS": "ON",
+                "MLANG_WARNINGS_AS_ERRORS": "OFF"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Optimized release with LLVM backend",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "MLANG_ENABLE_LLVM": "ON",
+                "MLANG_BUILD_TESTS": "OFF"
+            }
+        },
+        {
+            "name": "ci",
+            "displayName": "CI build (strict)",
+            "binaryDir": "${sourceDir}/build/ci",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "MLANG_ENABLE_LLVM": "OFF",
+                "MLANG_BUILD_TESTS": "ON",
+                "MLANG_WARNINGS_AS_ERRORS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "dev", "configurePreset": "dev" },
+        { "name": "release", "configurePreset": "release" },
+        { "name": "ci", "configurePreset": "ci" }
+    ],
+    "testPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "ci",
+            "configurePreset": "ci",
+            "output": { "outputOnFailure": true }
+        }
+    ]
+}

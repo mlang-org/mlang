@@ -1,0 +1,54 @@
+# Build artifacts
+/build/
+/build-*/
+/out/
+/cmake-build-*/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+
+# MLang build output
+/.mlang-cache/
+*.mir          # serialized MLang IR
+*.mbc          # MLang bytecode / object
+/packages/**/build/
+/target/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+CMakeUserPresets.json
+
+# Editors / IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Tooling
+/coverage/
+*.profraw
+*.profdata
+/.cache/
+
+# Node (VSCode extension)
+editors/vscode/node_modules/
+editors/vscode/*.vsix
+editors/vscode/out/
+
+# Logs
+*.log
