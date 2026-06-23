@@ -1,0 +1,67 @@
+{
+    "name": "mlang-language-support",
+    "displayName": "MLang Language Support",
+    "description": "Language support for MLang: syntax highlighting, diagnostics, and editor intelligence via the mls language server.",
+    "version": "0.1.0",
+    "publisher": "mlang-org",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mlang-org/mlang.git",
+        "directory": "editors/vscode"
+    },
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Formatters",
+        "Linters"
+    ],
+    "main": "./src/extension.js",
+    "activationEvents": [
+        "onLanguage:mlang"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "mlang",
+                "aliases": ["MLang", "mlang"],
+                "extensions": [".m"],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "mlang",
+                "scopeName": "source.mlang",
+                "path": "./syntaxes/mlang.tmLanguage.json"
+            }
+        ],
+        "configuration": {
+            "title": "MLang",
+            "properties": {
+                "mlang.server.path": {
+                    "type": "string",
+                    "default": "mls",
+                    "description": "Path to the mls language server executable."
+                },
+                "mlang.trace.server": {
+                    "type": "string",
+                    "enum": ["off", "messages", "verbose"],
+                    "default": "off",
+                    "description": "Trace communication with the language server."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "mlang.restartServer",
+                "title": "MLang: Restart Language Server"
+            }
+        ]
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1"
+    }
+}

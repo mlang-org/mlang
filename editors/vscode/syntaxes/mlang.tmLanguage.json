@@ -1,0 +1,93 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "MLang",
+    "scopeName": "source.mlang",
+    "patterns": [
+        { "include": "#comments" },
+        { "include": "#keywords" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#types" },
+        { "include": "#functions" },
+        { "include": "#annotations" }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                { "name": "comment.line.documentation.mlang", "match": "///.*$" },
+                { "name": "comment.line.double-slash.mlang", "match": "//.*$" },
+                { "name": "comment.block.mlang", "begin": "/\\*", "end": "\\*/" }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.mlang",
+                    "match": "\\b(if|else|match|case|default|for|while|do|in|break|continue|return|yield|try|catch|finally|throw|await|launch|scope)\\b"
+                },
+                {
+                    "name": "keyword.declaration.mlang",
+                    "match": "\\b(namespace|import|let|var|const|fn|class|struct|interface|enum|extension|constructor|destructor|ext|impl|where)\\b"
+                },
+                {
+                    "name": "storage.modifier.mlang",
+                    "match": "\\b(public|private|protected|internal|static|abstract|virtual|override|sealed|async|readonly|unsafe)\\b"
+                },
+                {
+                    "name": "constant.language.mlang",
+                    "match": "\\b(true|false|null|this|super)\\b"
+                },
+                {
+                    "name": "keyword.operator.word.mlang",
+                    "match": "\\b(is|as|new)\\b"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.mlang",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        { "name": "constant.character.escape.mlang", "match": "\\\\." },
+                        {
+                            "name": "meta.template.expression.mlang",
+                            "begin": "\\$\\{",
+                            "end": "\\}",
+                            "patterns": [{ "include": "$self" }]
+                        }
+                    ]
+                },
+                { "name": "string.quoted.single.mlang", "begin": "'", "end": "'" }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.mlang",
+                    "match": "\\b(0x[0-9A-Fa-f_]+|0o[0-7_]+|0b[01_]+|[0-9][0-9_]*(\\.[0-9_]+)?([eE][+-]?[0-9]+)?)(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|L)?\\b"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                { "name": "support.type.primitive.mlang", "match": "\\b(int|uint|i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|float|bool|char|byte|String|void|Any|Nothing)\\b" },
+                { "name": "entity.name.type.mlang", "match": "\\b[A-Z][A-Za-z0-9_]*\\b" }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.mlang",
+                    "match": "\\b([a-z_][A-Za-z0-9_]*)\\s*(?=\\()"
+                }
+            ]
+        },
+        "annotations": {
+            "patterns": [
+                { "name": "storage.type.annotation.mlang", "match": "@[A-Za-z_][A-Za-z0-9_.]*" }
+            ]
+        }
+    }
+}
