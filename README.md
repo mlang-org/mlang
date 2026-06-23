@@ -1,10 +1,8 @@
 <div align="center">
 
-# MLang
-
-**A modern, statically-typed, memory-safe systems & application language.**
-
-*Compiled. Null-safe. Ownership without a tracing GC. Coroutines built in.*
+<p>
+    <a href="https://mlang.org/" target="_blank"><img width="700" src="https://socialify.git.ci/mlang-org/mlang/image?description=1&font=Inter&forks=1&issues=1&logo=https%3A%2F%2Fgithub.com%2Fmlang%2Fmlang%2Fblob%2Fmain%2F.github%2Flogo.png%3Fraw%3Dtrue&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Auto" alt="The MLang logo"></a>
+</p>
 
 [![CI](https://github.com/mlang-org/mlang/actions/workflows/ci.yml/badge.svg)](https://github.com/mlang-org/mlang/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -59,7 +57,6 @@ public fn main() {
 | Build tool       | `mbuild`        | Project orchestration.               |
 | Formatter        | `mfmt`          | Canonical code style.                |
 | Language server  | `mls`           | LSP for any editor.                  |
-| IDE extension    | —               | *MLang Language Support* (VS Code).  |
 
 File extension: **`.m`**
 
@@ -76,8 +73,7 @@ dependency). mango can also be installed on its own from the
 ```sh
 base=https://github.com/mlang-org/mlang/releases/latest/download
 curl -LO $base/mlang_0.1.0_amd64.deb
-curl -LO $base/mango_0.1.0_amd64.deb
-sudo apt install ./mlang_0.1.0_amd64.deb ./mango_0.1.0_amd64.deb
+sudo apt install ./mlang_0.1.0_amd64.deb
 ```
 
 The `mlang` package depends on `mango`, so both must be installed together.
@@ -116,21 +112,6 @@ cmake --build --preset dev
 # Create and run a project (once mbuild/mango are wired to the backend)
 mbuild new hello && cd hello
 mbuild run
-```
-
-## Repository layout
-
-```
-mlang/
-├── compiler/        # mlangc — the C++23 compiler
-├── runtime/         # mlang-runtime — allocator, scheduler, intrinsics
-├── stdlib/          # the standard library, written in MLang
-├── tools/           # mfmt, mls, mbuild
-├── packages/mango/  # package manager (git submodule -> mlang-org/mango)
-├── editors/vscode/  # "MLang Language Support" extension
-├── docs/            # design documents, language spec, EBNF grammar
-├── examples/        # sample MLang programs
-└── tests/           # cross-cutting language & end-to-end tests
 ```
 
 ## Documentation
