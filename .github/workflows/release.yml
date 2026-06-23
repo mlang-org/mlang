@@ -72,6 +72,10 @@ jobs:
         run: cmake --build build --config Release -j
       - name: Package (feature-selectable installer)
         run: cd build && cpack -G WIX -C Release
+      - name: Show WiX log on failure
+        if: failure()
+        shell: bash
+        run: cat build/_CPack_Packages/win64/WIX/wix.log || true
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
