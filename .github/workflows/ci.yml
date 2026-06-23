@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CMake & Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Configure (strict, no LLVM backend)
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMLANG_BUILD_TOOLS=ON
+          -DMLANG_BUILD_RUNTIME=ON
+          -DMLANG_BUILD_TESTS=ON
+          -DMLANG_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Smoke-test the compiler on the examples
+        shell: bash
+        run: |
+          set -e
+          for f in examples/*.m; do
+            echo "== parsing $f =="
+            ./build/bin/mlangc --emit=ast "$f" > /dev/null
+          done
+
+      - name: Formatter check on the examples
+        shell: bash
+        run: |
+          for f in examples/*.m; do
+            ./build/bin/mfmt --check "$f"
+          done
+
+  clang-format:
+    name: clang-format (advisory)
+    runs-on: ubuntu-latest
+    # Advisory until a formatting baseline is committed: reports style drift
+    # without blocking merges. Flip continue-on-error to false to enforce.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check C++ formatting
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format
+          find compiler runtime tools -type f \( -name '*.cpp' -o -name '*.hpp' \) \
+            | xargs clang-format --dry-run --Werror
