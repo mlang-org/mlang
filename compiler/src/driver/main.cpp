@@ -1,9 +1,13 @@
 #include "mlang/ast/Ast.hpp"
+#include "mlang/codegen/CodeGenBackend.hpp"
+#include "mlang/ir/MirBuilder.hpp"
 #include "mlang/lexer/Lexer.hpp"
 #include "mlang/parser/Parser.hpp"
+#include "mlang/sema/Sema.hpp"
 #include "mlang/support/Arena.hpp"
 #include "mlang/support/Diagnostic.hpp"
 #include "mlang/support/SourceManager.hpp"
+#include "mlang/types/Type.hpp"
 
 #include <iostream>
 #include <string>
@@ -16,7 +20,7 @@
 
 namespace {
 
-enum class EmitKind { Tokens, Ast, Ir, Llvm, Obj, Exe };
+enum class EmitKind { Tokens, Ast, Sema, Ir, Llvm, Obj, Exe };
 
 struct Options {
     EmitKind emit = EmitKind::Ast;
@@ -29,7 +33,7 @@ void printUsage(std::ostream& os) {
        << "USAGE:\n"
        << "    mlangc [OPTIONS] <input.m>\n\n"
        << "OPTIONS:\n"
-       << "    --emit=<stage>   tokens | ast | ir | llvm | obj | exe (default: ast)\n"
+       << "    --emit=<stage>   tokens | ast | sema | ir | llvm | obj | exe (default: ast)\n"
        << "    --no-color       disable colored diagnostics\n"
        << "    --version        print version and exit\n"
        << "    --help           print this help and exit\n";
@@ -50,6 +54,7 @@ bool parseArgs(int argc, char** argv, Options& opts) {
             const std::string_view stage = arg.substr(7);
             if (stage == "tokens") opts.emit = EmitKind::Tokens;
             else if (stage == "ast") opts.emit = EmitKind::Ast;
+            else if (stage == "sema") opts.emit = EmitKind::Sema;
             else if (stage == "ir") opts.emit = EmitKind::Ir;
             else if (stage == "llvm") opts.emit = EmitKind::Llvm;
             else if (stage == "obj") opts.emit = EmitKind::Obj;
@@ -115,17 +120,51 @@ int main(int argc, char** argv) {
         mlang::ast::printModule(module, std::cout);
         break;
     }
-    case EmitKind::Ir:
+    case EmitKind::Sema: {
+        mlang::support::Arena arena;
+        mlang::parser::Parser parser(arena, sources, *fileId, diags);
+        const mlang::ast::Module module = parser.parseModule();
+        mlang::types::TypeContext types;
+        mlang::sema::Sema sema(diags, types);
+        sema.analyze(module);
+        for (const auto& sym : sema.globals()) {
+            const auto lc = sources.lineColumn(sym.declaredAt.begin);
+            std::cout << "symbol " << sym.name << " (" << lc.line << ':' << lc.column << ")\n";
+        }
+        break;
+    }
+    case EmitKind::Ir: {
+        mlang::support::Arena arena;
+        mlang::parser::Parser parser(arena, sources, *fileId, diags);
+        const mlang::ast::Module module = parser.parseModule();
+        mlang::types::TypeContext types;
+        mlang::sema::Sema sema(diags, types);
+        sema.analyze(module);
+        mlang::ir::MirBuilder builder(types);
+        const mlang::ir::Module mir = builder.build(module);
+        mir.print(std::cout);
+        break;
+    }
     case EmitKind::Llvm:
     case EmitKind::Obj:
     case EmitKind::Exe: {
-        // Front-end runs to validate the program; the backend stages past the
-        // AST are under construction (see docs/design/37-development-phases.md).
         mlang::support::Arena arena;
         mlang::parser::Parser parser(arena, sources, *fileId, diags);
-        (void)parser.parseModule();
-        std::cerr << "mlangc: requested stage is not yet available in this build; "
-                     "the frontend ran and reported any diagnostics below.\n";
+        const mlang::ast::Module module = parser.parseModule();
+        mlang::types::TypeContext types;
+        mlang::sema::Sema sema(diags, types);
+        sema.analyze(module);
+        mlang::ir::MirBuilder builder(types);
+        const mlang::ir::Module mir = builder.build(module);
+        if (auto backend = mlang::codegen::createBackend()) {
+            mlang::codegen::TargetInfo target;
+            backend->lowerModule(mir, target);
+            std::cerr << "mlangc: native code generation is not wired up in this build.\n";
+        } else {
+            std::cerr << "mlangc: this build has no native backend "
+                         "(configure with -DMLANG_ENABLE_LLVM=ON); "
+                         "the frontend and MIR stages ran successfully.\n";
+        }
         break;
     }
     }
