@@ -33,4 +33,4 @@ add_executable(mlangc src/driver/main.cpp)
 target_link_libraries(mlangc PRIVATE mlang::sema mlang::warnings)
 target_compile_definitions(mlangc PRIVATE MLANG_VERSION="${PROJECT_VERSION}")
 
-install(TARGETS mlangc RUNTIME DESTINATION bin)
+install(TARGETS mlangc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT core)

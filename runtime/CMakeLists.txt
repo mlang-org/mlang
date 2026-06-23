@@ -8,4 +8,5 @@ target_include_directories(mlang_runtime PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(mlang_runtime PRIVATE mlang::warnings)
 
-install(TARGETS mlang_runtime ARCHIVE DESTINATION lib)
+install(TARGETS mlang_runtime ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT core)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT core)
