@@ -1,0 +1,3 @@
+[submodule "packages/mango"]
+	path = packages/mango
+	url = https://github.com/mlang-org/mango.git
