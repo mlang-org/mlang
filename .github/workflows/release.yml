@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  linux-packages:
+    name: Linux packages (.deb, .rpm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: lukka/get-cmake@latest
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y rpm file
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMLANG_BUILD_TESTS=OFF
+      - name: Build
+        run: cmake --build build -j
+      - name: Package (core + mango components)
+        run: cd build && cpack -G "DEB;RPM"
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: MLang ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          body: |
+            ## MLang ${{ github.event.inputs.tag || github.ref_name }}
+
+            Native installers for the MLang toolchain.
+
+            - **Linux**: install `mlang_*.deb` / `mlang-*.rpm` (and the optional
+              `mlang-mango` package for the package manager).
+            - **Windows**: run `mlang-*.msi` and select the components to install
+              (the MLang toolchain is required; mango is optional).
+
+            ```sh
+            # Debian/Ubuntu
+            sudo apt install ./mlang_*_amd64.deb ./mlang-mango_*_amd64.deb
+            # Fedora/RHEL
+            sudo dnf install ./mlang-*.x86_64.rpm
+            ```
+          files: |
+            build/*.deb
+            build/*.rpm
+
+  windows-msi:
+    name: Windows installer (.msi)
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: lukka/get-cmake@latest
+      - name: Install WiX Toolset
+        run: choco install wixtoolset --no-progress -y
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMLANG_BUILD_TESTS=OFF
+      - name: Build
+        run: cmake --build build --config Release -j
+      - name: Package (feature-selectable installer)
+        run: cd build && cpack -G WIX -C Release
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: MLang ${{ github.event.inputs.tag || github.ref_name }}
+          files: build/*.msi
