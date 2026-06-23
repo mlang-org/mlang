@@ -161,8 +161,7 @@ param           = { annotation } [ "readonly" ] identifier ":" type
                   [ "=" expression ] ;
 
 (* fields / variables / constants *)
-fieldDecl       = ( "let" | "var" ) identifier [ ":" type ]
-                  [ "=" expression ] term ;
+fieldDecl       = ( "let" | "var" ) identifier binding term ;
 constDecl       = "const" identifier [ ":" type ] "=" expression term ;
 
 (* generics *)
@@ -201,8 +200,14 @@ statement       = block
                 | launchStmt
                 | exprStmt ;
 
-letStmt         = "let" pattern [ ":" type ] [ "=" expression ] term ;
-varStmt         = "var" identifier [ ":" type ] [ "=" expression ] term ;
+(* A colon introduces the value (e.g. `let age: 20`); types are inferred. An
+   explicit type uses the `: type = expr` form. See docs/design/07-type-system. *)
+letStmt         = "let" pattern binding term ;
+varStmt         = "var" identifier binding term ;
+binding         = ":" expression               (* colon introduces the value *)
+                | ":" type "=" expression       (* explicit type annotation *)
+                | "=" expression                (* inferred type *)
+                | (* empty: declaration only *) ;
 
 ifStmt          = "if" "(" expression ")" block
                   { "else" "if" "(" expression ")" block }
