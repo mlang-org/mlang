@@ -81,7 +81,8 @@ bool parseArgs(int argc, char** argv, Options& opts) {
 void emitTokens(const mlang::support::SourceManager& sm, mlang::support::FileId file,
                 mlang::support::DiagnosticEngine& diags) {
     mlang::lexer::Lexer lexer(sm, file, diags);
-    for (auto tokens = lexer.tokenize(); const auto& tok : tokens) {
+    const auto tokens = lexer.tokenize();
+    for (const auto& tok : tokens) {
         const auto lc = sm.lineColumn(tok.range.begin);
         std::cout << lc.line << ':' << lc.column << "\t"
                   << mlang::lexer::tokenKindName(tok.kind);
