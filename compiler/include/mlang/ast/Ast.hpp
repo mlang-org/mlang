@@ -16,7 +16,8 @@ enum class NodeKind {
     LiteralExpr, IdentExpr, ThisExpr, SuperExpr,
     UnaryExpr, BinaryExpr, AssignExpr, TernaryExpr,
     CallExpr, MemberExpr, IndexExpr, PostfixExpr,
-    LambdaExpr, ArrayLiteralExpr, CastExpr, IsExpr, NewExpr, AwaitExpr, ErrorExpr,
+    LambdaExpr, ArrayLiteralExpr, CastExpr, IsExpr, NewExpr, AwaitExpr,
+    ScopeExpr, LaunchExpr, TryExpr, ErrorExpr,
     // Statements
     BlockStmt, VarDeclStmt, ExprStmt, IfStmt, WhileStmt, DoWhileStmt, ForStmt,
     ReturnStmt, BreakStmt, ContinueStmt, ThrowStmt, TryStmt, MatchStmt, LaunchStmt,
@@ -179,6 +180,19 @@ struct NewExpr : Expr {
 struct AwaitExpr : Expr {
     Expr* operand = nullptr;
     AwaitExpr() : Expr(NodeKind::AwaitExpr) {}
+};
+struct TryExpr : Expr { // postfix `?` error-propagation
+    Expr* operand = nullptr;
+    TryExpr() : Expr(NodeKind::TryExpr) {}
+};
+struct ScopeExpr : Expr {
+    Stmt* body = nullptr; // a BlockStmt
+    ScopeExpr() : Expr(NodeKind::ScopeExpr) {}
+};
+struct LaunchExpr : Expr {
+    Expr* operand = nullptr; // call expression, or null when block is used
+    Stmt* block = nullptr;   // a BlockStmt, or null when operand is used
+    LaunchExpr() : Expr(NodeKind::LaunchExpr) {}
 };
 struct ErrorExpr : Expr { ErrorExpr() : Expr(NodeKind::ErrorExpr) {} };
 

@@ -38,7 +38,7 @@ private:
     ast::Modifiers parseModifiers();
     ast::ImportDecl* parseImport();
     ast::FnDecl* parseFn();
-    ast::FieldDecl* parseField(bool isConst);
+    ast::FieldDecl* parseField(bool isConst, bool isMember);
     ast::ClassDecl* parseClassLike();
     ast::EnumDecl* parseEnum();
     ast::ExtensionDecl* parseExtension();

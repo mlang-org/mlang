@@ -42,7 +42,7 @@ enum class TokenKind : std::uint8_t {
     Plus, Minus, Star, Slash, Percent, StarStar,
     Amp, Pipe, Caret, Tilde, Shl, Shr,
     AmpAmp, PipePipe, Bang,
-    Question, QuestionQuestion,
+    Question, QuestionQuestion, QuestionColon,
     Assign, PlusEq, MinusEq, StarEq, SlashEq, PercentEq,
     AmpAmpEq, PipePipeEq, QuestionQuestionEq,
     EqEq, NotEq, Lt, Gt, Le, Ge,

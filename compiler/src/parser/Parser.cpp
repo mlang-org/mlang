@@ -9,7 +9,8 @@ using lexer::TokenKind;
 namespace {
 int infixPrec(TokenKind k) {
     switch (k) {
-    case TokenKind::QuestionQuestion: return 1;
+    case TokenKind::QuestionQuestion:
+    case TokenKind::QuestionColon: return 1;
     case TokenKind::PipePipe: return 2;
     case TokenKind::AmpAmp: return 3;
     case TokenKind::Pipe: return 4;
@@ -352,10 +353,10 @@ ast::Decl* Parser::parseDeclaration() {
         break;
     case TokenKind::KwLet:
     case TokenKind::KwVar:
-        decl = parseField(false);
+        decl = parseField(false, false);
         break;
     case TokenKind::KwConst:
-        decl = parseField(true);
+        decl = parseField(true, false);
         break;
     case TokenKind::KwConstructor:
         decl = parseConstructor();
@@ -387,8 +388,8 @@ ast::Decl* Parser::parseMember() {
     switch (kind()) {
     case TokenKind::KwFn: decl = parseFn(); break;
     case TokenKind::KwLet:
-    case TokenKind::KwVar: decl = parseField(false); break;
-    case TokenKind::KwConst: decl = parseField(true); break;
+    case TokenKind::KwVar: decl = parseField(false, true); break;
+    case TokenKind::KwConst: decl = parseField(true, true); break;
     case TokenKind::KwConstructor: decl = parseConstructor(); break;
     case TokenKind::KwDestructor: decl = parseDestructor(); break;
     default:
@@ -491,7 +492,7 @@ ast::FnDecl* Parser::parseFn() {
     return fn;
 }
 
-ast::FieldDecl* Parser::parseField(bool isConst) {
+ast::FieldDecl* Parser::parseField(bool isConst, bool isMember) {
     const support::SourceLoc start = peek().range.begin;
     auto* field = makeNode<ast::FieldDecl>(start);
     field->isVar = check(TokenKind::KwVar);
@@ -501,10 +502,14 @@ ast::FieldDecl* Parser::parseField(bool isConst) {
         field->name = spelling(advance());
     }
     if (match(TokenKind::Colon)) {
-        if (scanHasTopLevelAssign()) {
+        // Class properties annotate a type (private var balance: Int); top-level
+        // and local bindings use the colon for the value (let age: 20). For a
+        // local binding, an explicit type uses the `: T = v` form.
+        if (isMember || scanHasTopLevelAssign()) {
             field->type = parseType();
-            expect(TokenKind::Assign, "'='");
-            field->init = parseExpression();
+            if (match(TokenKind::Assign)) {
+                field->init = parseExpression();
+            }
         } else {
             field->init = parseExpression();
         }
@@ -1098,7 +1103,9 @@ ast::Expr* Parser::parseBinary(int minPrec) {
             left = c;
             continue;
         }
-        const bool rightAssoc = op == TokenKind::StarStar || op == TokenKind::QuestionQuestion;
+        const bool rightAssoc = op == TokenKind::StarStar ||
+                                op == TokenKind::QuestionQuestion ||
+                                op == TokenKind::QuestionColon;
         ast::Expr* right = parseBinary(rightAssoc ? prec : prec + 1);
         auto* b = makeNode<ast::BinaryExpr>(start);
         b->op = op;
@@ -1195,6 +1202,21 @@ ast::Expr* Parser::parsePostfix() {
             p->op = TokenKind::Bang;
             p->operand = e;
             e = p;
+        } else if (check(TokenKind::Question)) {
+            // Postfix `?` (error propagation) when nothing can follow it as a
+            // ternary; otherwise leave the `?` for parseTernary.
+            const TokenKind after = kind(1);
+            const bool endsExpr = peek(1).startsLine || after == TokenKind::RParen ||
+                                  after == TokenKind::RBracket || after == TokenKind::RBrace ||
+                                  after == TokenKind::Comma || after == TokenKind::Semicolon ||
+                                  after == TokenKind::EndOfFile;
+            if (!endsExpr) {
+                break;
+            }
+            advance();
+            auto* t = makeNode<ast::TryExpr>(start);
+            t->operand = e;
+            e = t;
         } else {
             break;
         }
@@ -1229,6 +1251,28 @@ ast::Expr* Parser::parsePrimary() {
     case TokenKind::KwSuper: {
         advance();
         return makeNode<ast::SuperExpr>(start);
+    }
+    case TokenKind::KwScope: {
+        advance();
+        auto* s = makeNode<ast::ScopeExpr>(start);
+        s->body = parseBlock();
+        return s;
+    }
+    case TokenKind::KwLaunch: {
+        advance();
+        auto* l = makeNode<ast::LaunchExpr>(start);
+        if (check(TokenKind::LBrace)) {
+            l->block = parseBlock();
+        } else {
+            l->operand = parseUnary();
+        }
+        return l;
+    }
+    case TokenKind::KwAwait: {
+        advance();
+        auto* a = makeNode<ast::AwaitExpr>(start);
+        a->operand = parseUnary();
+        return a;
     }
     case TokenKind::LParen: {
         advance();

@@ -431,6 +431,25 @@ private:
             Indent g(*this); expr(static_cast<const AwaitExpr*>(e)->operand);
             break;
         }
+        case NodeKind::TryExpr: {
+            line("Try?");
+            Indent g(*this); expr(static_cast<const TryExpr*>(e)->operand);
+            break;
+        }
+        case NodeKind::ScopeExpr: {
+            line("Scope");
+            Indent g(*this);
+            if (static_cast<const ScopeExpr*>(e)->body) stmt(static_cast<const ScopeExpr*>(e)->body);
+            break;
+        }
+        case NodeKind::LaunchExpr: {
+            const auto* l = static_cast<const LaunchExpr*>(e);
+            line("Launch");
+            Indent g(*this);
+            if (l->operand) expr(l->operand);
+            if (l->block) stmt(l->block);
+            break;
+        }
         case NodeKind::ErrorExpr: line("<error-expr>"); break;
         default: line("<expr?>"); break;
         }

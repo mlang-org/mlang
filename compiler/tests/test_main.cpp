@@ -143,6 +143,35 @@ TEST(parser_precedence) {
     check(!diags.hasErrors(), "expression parses");
 }
 
+TEST(parser_elvis_and_try_and_member_type) {
+    support::SourceManager sm;
+    support::Arena arena;
+    support::DiagnosticEngine diags(sm);
+    auto module = parse(sm, arena, diags,
+                        "fn f(input: String?): Int {\n"
+                        "  let value: input ?: \"default\"\n"
+                        "  let parsed: parse(value)?\n"
+                        "  return 0\n"
+                        "}\n"
+                        "class Box { private var items: List<Int> }\n");
+    check(!diags.hasErrors(), "elvis, try-propagation, and member generic type parse");
+    check(module.declarations.size() == 2, "function and class parsed");
+}
+
+TEST(parser_scope_and_launch_expressions) {
+    support::SourceManager sm;
+    support::Arena arena;
+    support::DiagnosticEngine diags(sm);
+    auto module = parse(sm, arena, diags,
+                        "async fn handle(): String {\n"
+                        "  return scope {\n"
+                        "    let u: launch fetch(1)\n"
+                        "    await u\n"
+                        "  }\n"
+                        "}\n");
+    check(!diags.hasErrors(), "scope and launch expressions parse");
+}
+
 TEST(parser_recovers_from_error) {
     support::SourceManager sm;
     support::Arena arena;

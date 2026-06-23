@@ -270,6 +270,7 @@ Token Lexer::next() {
         return make(TokenKind::Pipe, start);
     case '?':
         if (match('.')) return make(TokenKind::QuestionDot, start);
+        if (match(':')) return make(TokenKind::QuestionColon, start); // Elvis
         if (match('?')) return make(match('=') ? TokenKind::QuestionQuestionEq
                                                : TokenKind::QuestionQuestion, start);
         return make(TokenKind::Question, start);

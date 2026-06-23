@@ -103,6 +103,7 @@ std::string_view tokenKindName(TokenKind kind) {
     case TokenKind::Bang: return "!";
     case TokenKind::Question: return "?";
     case TokenKind::QuestionQuestion: return "??";
+    case TokenKind::QuestionColon: return "?:";
     case TokenKind::Assign: return "=";
     case TokenKind::PlusEq: return "+=";
     case TokenKind::MinusEq: return "-=";
