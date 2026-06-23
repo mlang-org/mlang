@@ -39,6 +39,9 @@ set(CPACK_COMPONENT_CORE_REQUIRED ON)
 set(CPACK_COMPONENT_MANGO_DISPLAY_NAME "mango package manager")
 set(CPACK_COMPONENT_MANGO_DESCRIPTION
     "The mango package manager for fetching and publishing MLang packages.")
+# mango is installed together with the toolchain: installing mlang always brings
+# mango. (mango can still be installed on its own from the mango package/repo.)
+set(CPACK_COMPONENT_MANGO_REQUIRED ON)
 
 # Descriptive artifact names (mlang_0.1.0_amd64.deb, mlang-0.1.0.x86_64.rpm).
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
@@ -49,15 +52,18 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
 set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_CORE_PACKAGE_NAME "mlang")
-set(CPACK_DEBIAN_MANGO_PACKAGE_NAME "mlang-mango")
-set(CPACK_DEBIAN_CORE_PACKAGE_RECOMMENDS "mlang-mango")
+set(CPACK_DEBIAN_MANGO_PACKAGE_NAME "mango")
+# Installing mlang requires (and pulls in) mango.
+set(CPACK_DEBIAN_CORE_PACKAGE_DEPENDS "mango")
 
 # --- RPM -------------------------------------------------------------------
 set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 set(CPACK_RPM_PACKAGE_GROUP "Development/Languages")
 set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
 set(CPACK_RPM_CORE_PACKAGE_NAME "mlang")
-set(CPACK_RPM_MANGO_PACKAGE_NAME "mlang-mango")
+set(CPACK_RPM_MANGO_PACKAGE_NAME "mango")
+# Installing mlang requires (and pulls in) mango.
+set(CPACK_RPM_CORE_PACKAGE_REQUIRES "mango")
 
 # --- Windows (WiX -> .msi, with feature selection) -------------------------
 set(CPACK_WIX_UPGRADE_GUID "7C2A9D14-3E48-4A6B-9F10-2B3C4D5E6F70")

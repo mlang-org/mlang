@@ -66,31 +66,33 @@ File extension: **`.m`**
 ## Install
 
 Prebuilt installers are published on the
-[releases page](https://github.com/mlang-org/mlang/releases/latest). The
-toolchain is split into a required **core** (compiler, runtime, `mfmt`, `mls`,
-`mbuild`, standard library) and an optional **mango** package manager.
+[releases page](https://github.com/mlang-org/mlang/releases/latest). Installing
+MLang always installs the **mango** package manager with it (mango is a required
+dependency). mango can also be installed on its own from the
+[mango releases](https://github.com/mlang-org/mango/releases/latest).
 
 ### Linux (Debian / Ubuntu)
 
 ```sh
 base=https://github.com/mlang-org/mlang/releases/latest/download
 curl -LO $base/mlang_0.1.0_amd64.deb
-curl -LO $base/mlang-mango_0.1.0_amd64.deb   # optional: the package manager
-sudo apt install ./mlang_0.1.0_amd64.deb ./mlang-mango_0.1.0_amd64.deb
+curl -LO $base/mango_0.1.0_amd64.deb
+sudo apt install ./mlang_0.1.0_amd64.deb ./mango_0.1.0_amd64.deb
 ```
+
+The `mlang` package depends on `mango`, so both must be installed together.
 
 ### Linux (Fedora / RHEL)
 
 ```sh
 base=https://github.com/mlang-org/mlang/releases/latest/download
-sudo dnf install $base/mlang-0.1.0-1.x86_64.rpm $base/mlang-mango-0.1.0-1.x86_64.rpm
+sudo dnf install $base/mlang-0.1.0-1.x86_64.rpm $base/mango-0.1.0-1.x86_64.rpm
 ```
 
 ### Windows
 
-Download **`mlang-0.1.0-win64.msi`** from the releases page and run it. The
-installer lets you select components: the MLang toolchain is required, and the
-mango package manager is an optional feature you can check or uncheck.
+Download **`mlang-0.1.0-win64.msi`** from the releases page and run it. mango is
+included and installed automatically with the toolchain.
 
 After installing, verify:
 
