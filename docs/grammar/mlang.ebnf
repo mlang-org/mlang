@@ -1,0 +1,306 @@
+(* ===========================================================================
+   MLang formal grammar
+   ---------------------------------------------------------------------------
+   Notation: ISO/IEC 14977 EBNF with the usual extensions.
+     =        rule definition          |   alternation
+     ( )      grouping                 [ ]  optional (0 or 1)
+     { }      repetition (0 or more)   " "  terminal literal
+     name     non-terminal             (* *) comment
+     ?desc?   special sequence (described informally)
+
+   The grammar is split into a LEXICAL grammar (characters -> tokens) and a
+   SYNTACTIC grammar (tokens -> tree). See docs/design/34-grammar.md.
+   =========================================================================== *)
+
+
+(* ===========================================================================
+   PART 1 - LEXICAL GRAMMAR
+   =========================================================================== *)
+
+(* --- Whitespace and comments (trivia; not part of the token stream) ------ *)
+newline        = "\n" | "\r\n" ;
+whitespace     = " " | "\t" | newline ;
+lineComment    = "//" { ?any char except newline? } ;
+blockComment   = "/*" { blockComment | ?any char? } "*/" ;   (* nesting allowed *)
+docComment     = "///" { ?any char except newline? } ;
+trivia         = whitespace | lineComment | blockComment | docComment ;
+
+(* --- Identifiers (UAX #31, NFC; keywords are excluded) -------------------- *)
+idStart        = letter | "_" ;
+idContinue     = letter | digit | "_" ;
+letter         = ?Unicode XID_Start? ;
+identifier     = idStart { idContinue } ;   (* and not a keyword *)
+
+(* --- Keywords ------------------------------------------------------------- *)
+keyword =
+    "namespace" | "import" | "as"
+  | "let" | "var" | "readonly" | "const"
+  | "fn" | "return" | "yield"
+  | "class" | "struct" | "interface" | "enum" | "extension"
+  | "abstract" | "virtual" | "override" | "static" | "sealed"
+  | "constructor" | "destructor"
+  | "ext" | "impl" | "where"
+  | "public" | "private" | "protected" | "internal"
+  | "if" | "else" | "match" | "case" | "default"
+  | "for" | "while" | "do" | "in" | "break" | "continue"
+  | "try" | "catch" | "finally" | "throw"
+  | "async" | "await" | "launch" | "scope"
+  | "new" | "this" | "super" | "is" | "unsafe"
+  | "true" | "false" | "null" ;
+
+(* --- Literals ------------------------------------------------------------- *)
+digit          = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hexDigit       = digit | "a".."f" | "A".."F" ;
+binDigit       = "0" | "1" ;
+octDigit       = "0".."7" ;
+
+intLiteral     = ( decInt | hexInt | octInt | binInt ) [ intSuffix ] ;
+decInt         = digit { digit | "_" } ;
+hexInt         = "0x" hexDigit { hexDigit | "_" } ;
+octInt         = "0o" octDigit { octDigit | "_" } ;
+binInt         = "0b" binDigit { binDigit | "_" } ;
+intSuffix      = "i8" | "i16" | "i32" | "i64"
+               | "u8" | "u16" | "u32" | "u64" | "L" ;
+
+floatLiteral   = decInt "." decInt [ exponent ] [ floatSuffix ]
+               | decInt exponent [ floatSuffix ]
+               | "." decInt [ exponent ] [ floatSuffix ] ;
+exponent       = ( "e" | "E" ) [ "+" | "-" ] decInt ;
+floatSuffix    = "f32" | "f64" ;
+
+boolLiteral    = "true" | "false" ;
+nullLiteral    = "null" ;
+
+charLiteral    = "'" ( escape | ?any char except "'" or "\"? ) "'" ;
+escape         = "\\" ( "n" | "r" | "t" | "0" | "\\" | "'" | "\""
+                       | "$" | "u{" hexDigit { hexDigit } "}" ) ;
+
+stringLiteral  = '"' { stringChar | interpolation } '"'
+               | rawString
+               | multilineString ;
+stringChar     = escape | ?any char except '"', "\\", "$", newline? ;
+interpolation  = "${" expression "}" ;
+rawString      = "r" { "#" } '"' { ?any char? } '"' { "#" } ;   (* matched hashes *)
+multilineString= '"""' newline { ?any line? } newline '"""' ;
+
+literal        = intLiteral | floatLiteral | boolLiteral | nullLiteral
+               | charLiteral | stringLiteral ;
+
+
+(* ===========================================================================
+   PART 2 - SYNTACTIC GRAMMAR
+
+   Statement termination: a newline terminates a statement unless the line is
+   in a continued state (previous token is a binary operator, ".", "?.", ",",
+   or an open bracket). An explicit ";" is always accepted. Below, "term"
+   denotes this terminator.
+   =========================================================================== *)
+
+compilationUnit = [ namespaceDecl ] { importDecl } { declaration } ;
+
+namespaceDecl   = "namespace" qualifiedName term ;
+qualifiedName   = identifier { "." identifier } ;
+
+importDecl      = "import" qualifiedName
+                  [ "." "{" importList "}" | "." "*" | "as" identifier ] term ;
+importList      = importItem { "," importItem } [ "," ] ;
+importItem      = identifier [ "as" identifier ] ;
+
+(* --- Declarations -------------------------------------------------------- *)
+declaration     = { annotation } { modifier }
+                  ( classDecl | structDecl | interfaceDecl | enumDecl
+                  | extensionDecl | fnDecl | fieldDecl | constDecl ) ;
+
+annotation      = "@" qualifiedName [ "(" [ argList ] ")" ] ;
+
+modifier        = "public" | "private" | "protected" | "internal"
+                | "static" | "abstract" | "virtual" | "override"
+                | "sealed" | "async" | "readonly" | "unsafe" ;
+
+(* classes / structs *)
+classDecl       = "class" identifier [ typeParams ]
+                  [ "ext" type ] [ "impl" typeList ] [ whereClause ]
+                  classBody ;
+structDecl      = "struct" identifier [ typeParams ]
+                  [ "impl" typeList ] [ whereClause ] classBody ;
+classBody       = "{" { member } "}" ;
+member          = { annotation } { modifier }
+                  ( fieldDecl | fnDecl | constructorDecl | destructorDecl
+                  | constDecl ) ;
+
+constructorDecl = "constructor" "(" [ paramList ] ")" block ;
+destructorDecl  = "destructor" "(" ")" block ;
+
+(* interfaces *)
+interfaceDecl   = "interface" identifier [ typeParams ]
+                  [ "ext" typeList ] [ whereClause ]
+                  "{" { interfaceMember } "}" ;
+interfaceMember = { annotation } { modifier }
+                  ( fnSignature term | fnDecl | fieldDecl ) ;
+
+(* enums *)
+enumDecl        = "enum" identifier [ typeParams ]
+                  [ "impl" typeList ]
+                  "{" enumCaseList [ ";" { member } ] "}" ;
+enumCaseList    = enumCase { "," enumCase } [ "," ] ;
+enumCase        = { annotation } identifier
+                  [ "(" paramList ")" ]          (* payload *)
+                  [ "=" expression ] ;           (* explicit discriminant *)
+
+(* extensions *)
+extensionDecl   = "extension" [ typeParams ] type
+                  [ "impl" typeList ] [ whereClause ]
+                  "{" { member } "}" ;
+
+(* functions *)
+fnDecl          = fnSignature ( block | term ) ;
+fnSignature     = "fn" identifier [ typeParams ] "(" [ paramList ] ")"
+                  [ ":" type ] [ whereClause ] ;
+paramList       = param { "," param } [ "," ] ;
+param           = { annotation } [ "readonly" ] identifier ":" type
+                  [ "=" expression ] ;
+
+(* fields / variables / constants *)
+fieldDecl       = ( "let" | "var" ) identifier [ ":" type ]
+                  [ "=" expression ] term ;
+constDecl       = "const" identifier [ ":" type ] "=" expression term ;
+
+(* generics *)
+typeParams      = "<" typeParam { "," typeParam } [ "," ] ">" ;
+typeParam       = [ "in" | "out" ] identifier [ ":" typeBound ]
+                | "const" identifier ":" type ;
+typeBound       = type { "&" type } ;
+whereClause     = "where" whereItem { "," whereItem } ;
+whereItem       = type ":" typeBound ;
+
+(* --- Types --------------------------------------------------------------- *)
+type            = nullableType ;
+nullableType    = primaryType [ "?" ] ;
+primaryType     = namedType
+                | tupleType
+                | arrayType
+                | mapType
+                | fnType
+                | "(" type ")" ;
+namedType       = qualifiedName [ typeArgs ] ;
+typeArgs        = "<" typeArg { "," typeArg } [ "," ] ">" ;
+typeArg         = [ "in" | "out" ] type ;
+tupleType       = "(" type "," [ type { "," type } ] ")" ;
+arrayType       = "[" type [ ";" expression ] "]" ;          (* [T] or [T; N] *)
+mapType         = "[" type ":" type "]" ;
+fnType          = [ "async" ] "(" [ typeList ] ")" "->" type ;
+typeList        = type { "," type } [ "," ] ;
+
+(* --- Statements ---------------------------------------------------------- *)
+block           = "{" { statement } "}" ;
+statement       = block
+                | letStmt | varStmt | constDecl
+                | ifStmt | matchStmt | forStmt | whileStmt | doWhileStmt
+                | returnStmt | breakStmt | continueStmt
+                | tryStmt | throwStmt | yieldStmt
+                | launchStmt
+                | exprStmt ;
+
+letStmt         = "let" pattern [ ":" type ] [ "=" expression ] term ;
+varStmt         = "var" identifier [ ":" type ] [ "=" expression ] term ;
+
+ifStmt          = "if" "(" expression ")" block
+                  { "else" "if" "(" expression ")" block }
+                  [ "else" block ] ;
+
+matchStmt       = "match" "(" expression ")" "{" { matchArm } "}" ;
+matchArm        = "case" pattern [ "if" expression ] "=>" ( expression term | block )
+                | "default" "=>" ( expression term | block ) ;
+
+forStmt         = "for" "(" pattern "in" expression ")" block ;
+whileStmt       = "while" "(" expression ")" block ;
+doWhileStmt     = "do" block "while" "(" expression ")" term ;
+
+returnStmt      = "return" [ expression ] term ;
+breakStmt       = "break" [ identifier ] term ;
+continueStmt    = "continue" [ identifier ] term ;
+yieldStmt       = "yield" expression term ;
+
+throwStmt       = "throw" expression term ;
+tryStmt         = "try" block { catchClause } [ "finally" block ] ;
+catchClause     = "catch" "(" identifier ":" type ")" block ;
+
+launchStmt      = "launch" ( block | expression ) term ;
+
+exprStmt        = expression term ;
+
+(* --- Patterns (for match, let, for) -------------------------------------- *)
+pattern         = wildcardPattern
+                | literalPattern
+                | bindingPattern
+                | tuplePattern
+                | enumPattern
+                | typePattern ;
+wildcardPattern = "_" ;
+literalPattern  = literal ;
+bindingPattern  = [ "let" ] identifier ;
+typePattern     = [ "let" ] identifier ":" type ;            (* binds + narrows *)
+tuplePattern    = "(" pattern { "," pattern } [ "," ] ")" ;
+enumPattern     = qualifiedName [ "(" pattern { "," pattern } ")" ] ;
+
+(* --- Expressions (precedence is enforced by the Pratt parser; this shows
+       the structure - see docs/design/05-parser.md for the binding-power
+       table) -------------------------------------------------------------- *)
+expression      = assignment ;
+assignment      = lambda [ assignOp assignment ] ;
+assignOp        = "=" | "+=" | "-=" | "*=" | "/=" | "%="
+                | "&&=" | "||=" | "??=" ;
+
+lambda          = ternary
+                | "(" [ paramListLite ] ")" "=>" ( expression | block )
+                | identifier "=>" ( expression | block ) ;
+paramListLite   = lambdaParam { "," lambdaParam } [ "," ] ;
+lambdaParam     = identifier [ ":" type ] ;
+
+ternary         = nullCoalesce [ "?" expression ":" expression ] ;
+nullCoalesce    = logicalOr { "??" logicalOr } ;
+logicalOr       = logicalAnd { "||" logicalAnd } ;
+logicalAnd      = bitOr { "&&" bitOr } ;
+bitOr           = bitXor { "|" bitXor } ;
+bitXor          = bitAnd { "^" bitAnd } ;
+bitAnd          = equality { "&" equality } ;
+equality        = relational { ( "==" | "!=" ) relational } ;
+relational      = shift { ( "<" | ">" | "<=" | ">=" | "is" | "as" ) shift } ;
+shift           = additive { ( "<<" | ">>" ) additive } ;
+additive        = multiplicative { ( "+" | "-" ) multiplicative } ;
+multiplicative  = power { ( "*" | "/" | "%" ) power } ;
+power           = unary { "**" unary } ;
+unary           = ( "!" | "-" | "+" | "~" | "await" | "new" ) unary
+                | postfix ;
+postfix         = primary { postfixOp } ;
+postfixOp       = "." identifier
+                | "?." identifier
+                | "(" [ argList ] ")"
+                | "[" expression "]"
+                | "!" ;                          (* non-null assertion *)
+
+argList         = arg { "," arg } [ "," ] ;
+arg             = [ identifier ":" ] expression ;            (* named or positional *)
+
+primary         = literal
+                | identifier
+                | "this" | "super"
+                | "(" expression ")"             (* or tuple if commas present *)
+                | arrayLiteral
+                | mapLiteral
+                | structLiteral
+                | matchExpr
+                | ifExpr
+                | "scope" block
+                | "launch" ( block | expression ) ;
+
+arrayLiteral    = "[" [ expression { "," expression } [ "," ] ] "]" ;
+mapLiteral      = "[" ( ":" | mapEntry { "," mapEntry } [ "," ] ) "]" ;
+mapEntry        = expression ":" expression ;
+structLiteral   = namedType "{" [ fieldInit { "," fieldInit } [ "," ] ] "}" ;
+fieldInit       = identifier ":" expression ;
+
+matchExpr       = "match" "(" expression ")" "{" { matchArm } "}" ;
+ifExpr          = "if" "(" expression ")" expression "else" expression ;
+
+(* End of grammar. *)
