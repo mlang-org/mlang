@@ -63,6 +63,42 @@ public fn main() {
 
 File extension: **`.m`**
 
+## Install
+
+Prebuilt installers are published on the
+[releases page](https://github.com/mlang-org/mlang/releases/latest). The
+toolchain is split into a required **core** (compiler, runtime, `mfmt`, `mls`,
+`mbuild`, standard library) and an optional **mango** package manager.
+
+### Linux (Debian / Ubuntu)
+
+```sh
+base=https://github.com/mlang-org/mlang/releases/latest/download
+curl -LO $base/mlang_0.1.0_amd64.deb
+curl -LO $base/mlang-mango_0.1.0_amd64.deb   # optional: the package manager
+sudo apt install ./mlang_0.1.0_amd64.deb ./mlang-mango_0.1.0_amd64.deb
+```
+
+### Linux (Fedora / RHEL)
+
+```sh
+base=https://github.com/mlang-org/mlang/releases/latest/download
+sudo dnf install $base/mlang-0.1.0-1.x86_64.rpm $base/mlang-mango-0.1.0-1.x86_64.rpm
+```
+
+### Windows
+
+Download **`mlang-0.1.0-win64.msi`** from the releases page and run it. The
+installer lets you select components: the MLang toolchain is required, and the
+mango package manager is an optional feature you can check or uncheck.
+
+After installing, verify:
+
+```sh
+mlangc --version
+mango --version
+```
+
 ## Quick start
 
 ```sh
